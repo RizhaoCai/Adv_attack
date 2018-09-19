@@ -1,7 +1,7 @@
 .pyproj
-Loss_sigmoid_cross_encropy\
-MSE\
-data\
-.vscode\
-.vs\
-__pycache__\
+Loss_sigmoid_cross_encropy/
+MSE/
+data/
+.vscode/
+.vs/
+__pycache__/
