@@ -24,6 +24,7 @@ def preprocess(X):
     return np.concatenate((X,X_hsv), axis=-1)/255.0
 
 def fgm(x_input, y, is_targetd=True, alpha=1, iteration=1, save_path = None, sign=True, ):
+    x_input = preprocess(x_input) # RGB -> RGB + HSV
     ckpt_filepath = 'data' + SEP + 'checkpoint' + SEP + "save-1000"
     [x_ph, d_ph, loss_op, d_predict_, train_op_] = CNN.create_fcn(False)  
     y_target = y*int(is_targetd)
@@ -35,15 +36,16 @@ def fgm(x_input, y, is_targetd=True, alpha=1, iteration=1, save_path = None, sig
     else:
         x_adv = x_ph + alpha*tf.sign(dy_dx) 
     x_adv = tf.clip_by_value(x_adv, 0, 1)
-    saver = tf.train.Saver()
+    
     sess = tf.InteractiveSession() # 如过使用 with tf.session as sess ， 会出现 checkpoint failed的错误
+    saver = tf.train.Saver()
     saver.restore(sess, ckpt_filepath)
     xadv = x_input
-    if not os.path.exists(save_path):
+    if save_path is not None and not os.path.exists(save_path):
         print("Make Dir: ", save_path)
         os.mkdir(save_path)
 
-    y_pred = sess.run([d_predict_],{x_ph:x_input} )
+    #y_pred = sess.run([d_predict_], {x_ph:x_input} )
     for i in range(iteration):
         [xadv, dydx ]  = sess.run([x_adv,dy_dx] , feed_dict = {x_ph: xadv, d_ph:y_target})
         #xadv = xadv[0]

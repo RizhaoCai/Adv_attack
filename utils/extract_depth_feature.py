@@ -17,7 +17,7 @@ from sklearn.metrics import classification_report
 from sklearn import svm
 import IPython
 sys.path.append('.\\')
-from adv_method import fgm
+import adv_method
 import logging
 import csv
 DB_PATH = r"D:\Workspace\Projects\Adversarial Attack\Adversarial Attack\data\CASIA_depth.mat"
@@ -28,8 +28,8 @@ def grid_search(X,y, csv_filepath):
     tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-2,1e-3, 1e-4,],
                      'C': np.logspace(-10,5,100).tolist()},
                      {'kernel': ['linear'], 'C': np.logspace(-10,5,100).tolist()}] 
-    scores = ['accuracy', 'roc_auc']
-
+    #scores = ['accuracy', 'roc_auc']
+    scores = ['roc_auc']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.7, random_state=0)
     
     for score in scores:
@@ -60,19 +60,14 @@ def grid_search(X,y, csv_filepath):
         y_true, y_pred = y_test, clf.predict(X_test)
         # 打印在测试集上的预测结果与真实值的分数
         print(classification_report(y_true, y_pred))
-
-        
-
-
-       
-            
-
+    
+    return clf
             
         
 if __name__ == '__main__':
     mat = h5.File(DB_PATH, 'r')
     X, D, LBL = data.load_h5_data(mat, 'TRAIN', 1000) # X: 256X256X3 D:32X32X3
-    del X
+    #del X
     print(LBL.shape)
     
 
@@ -89,7 +84,32 @@ if __name__ == '__main__':
     #svm_model = svm.SVC()
     #svm_model.fit(depth_feature, LBL)
     csv_file = "grid_search.csv"
-    grid_search(depth_feature, LBL, csv_file)
+    clf = grid_search(depth_feature, LBL, csv_file)
+
+    # befor attack
+    #y_true, y_pred = y_test, clf.predict(X_test)
+        # 打印在测试集上的预测结果与真实值的分数
+    #print(classification_report(y_true, y_pred))
+
+    alpha = 0.01
+    iteration = 35
+
+    _, depth_adv_ = adv_method.fgm(X, D, True, alpha, iteration)
+    num_sample = D.shape[0]
+    new_shape_ = [num_sample, D.shape[1]*D.shape[2]*D.shape[3]]
+    depth_adv = np.zeros(new_shape_)
+    for i in range(num_sample):
+        # flatten
+        depth_adv[i,:] = np.reshape(depth_adv_[i,:,:,:], [1,depth_adv_.shape[1]*depth_adv_.shape[2]*depth_adv_.shape[3]]) 
+        print("Preprocessing {}/{}".format(i+1, num_sample))
+    del depth_adv_
+    del _
+    # after attack
+    y_adv_pred = clf.predict(depth_adv)
+    print(classification_report(LBL, y_adv_pred))
+
+
+
 
 
     
